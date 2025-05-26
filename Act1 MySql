@@ -1,0 +1,17 @@
+create database NetflixDB
+use NetflixDB
+
+create table catalogo (
+    show_id varchar(10) primary key,
+    `type` varchar(20),
+    title varchar(255),
+    director varhcar(255),
+    `cast` text,
+    country varchar(100),
+    date_added DATE,
+    release_year INT,
+    rating VARCHAR(10),
+    duration VARCHAR(50),
+    listed_in VARCHAR(100),
+    `description` text
+);
