@@ -1,0 +1,65 @@
+import pandas as pd
+import mysql.connector
+
+def analizar_netflix(csv_path):
+    df = pd.read_csv(csv_path)
+    df["date_added"] = pd.to_datetime(df["date_added"], errors="coerce")
+    df = df.where(pd.notnull(df), None)
+
+
+
+    conexion = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        password="Password246.",
+        database="NetflixDB"
+    )
+    cursor = conexion.cursor()
+
+    for _, fila in df.iterrows():
+        try:
+            fecha = pd.to_datetime(fila["date_added"]).strftime("%Y-%m-%d") if pd.notnull(fila["date_added"]) else None
+        except:
+            fecha = None
+
+        sql = """
+        insert into catalogo 
+        (show_id, type, title, director, cast, country, date_added,
+         release_year, rating, duration, listed_in, description)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        valores = (
+            fila["show_id"],
+            fila["type"],
+            fila["title"],
+            fila["director"],
+            fila["cast"],
+            fila["country"],
+            fecha,
+            int(fila["release_year"]) if pd.notnull(fila["release_year"]) else None,
+            fila["rating"],
+            fila["duration"],
+            fila["listed_in"],
+            fila["description"]
+        )
+        cursor.execute(sql, valores)
+
+    conexion.commit()
+
+    dfsql = pd.read_sql("SELECT * FROM catalogo", conexion)
+    titulos= dfsql["country"].value_counts()
+    dfduration= dfsql[dfsql["duration"].str.contains("min", na=False)].copy()
+    dfduration["minutos"] = dfduration["duration"].str.extract(r"(\d+)").astype(float)
+    promedio= dfduration.groupby("country")["minutos"].mean().sort_values(ascending=False)
+
+    cursor.close()
+    conexion.close()
+
+    return titulos, promedio
+
+if __name__ == "__main__":
+    csv = "netflix_titles.csv"
+    titulos, duracion = analizar_netflix(csv)
+    print(titulos.head(10))
+    print(duracion.head(10))
+    
